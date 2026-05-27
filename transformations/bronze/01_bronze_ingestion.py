@@ -1,3 +1,10 @@
+"""
+Bronze Layer Ingestion Pipeline
+
+This module ingests raw CSV files from Unity Catalog volumes into Bronze layer tables.
+Bronze tables contain unprocessed data as-is from the source.
+"""
+
 from pyspark import pipelines as dp
 
 
@@ -17,8 +24,9 @@ COUNTRY_CODES_SAMPLE_FILE = f"{COUNTRY_CODES_PATH}/marathos_country_codes.csv"
 # ------------------------------------------------------------
 # Parse schemas from CSV files
 # ------------------------------------------------------------
-# Streaming reads need a predefined schema.
-# Spark cannot infer schema continuously while streaming.
+# Streaming reads require a predefined schema because Spark cannot
+# infer schema continuously while streaming. We read a sample file
+# once to extract the schema, then use it for the streaming read.
 
 marathon_schema = (
     spark.read.format("csv")
@@ -42,20 +50,32 @@ country_codes_schema = (
 # ------------------------------------------------------------
 
 @dp.table(
+    # Fully-qualified table name: catalog.schema.table
     name="marathos_catalog.bronze.raw_marathon_results",
     comment="Raw ultra-marathon race results ingested into the Bronze layer.",
     table_properties={
+        # Column mapping allows safe column renames without breaking downstream queries
         "delta.columnMapping.mode": "name",
         "delta.minReaderVersion": "2",
         "delta.minWriterVersion": "5",
     },
 )
 def raw_marathon_results():
+    """
+    Ingest marathon race results from CSV files using streaming read.
+    
+    This function defines a streaming table that automatically processes new files
+    as they arrive in the source directory.
+    
+    Returns:
+        Streaming DataFrame containing raw marathon data from all CSV files
+        in the marathon data directory.
+    """
     return (
-        spark.readStream.format("csv")
+        spark.readStream.format("csv")  # Streaming read for incremental processing
         .options(header="true", inferSchema="true")
-        .schema(marathon_schema)
-        .load(MARATHON_DATA_PATH)
+        .schema(marathon_schema)  # Use predefined schema for streaming
+        .load(MARATHON_DATA_PATH)  # Read all CSV files from directory
     )
 
 
@@ -64,18 +84,30 @@ def raw_marathon_results():
 # ------------------------------------------------------------
 
 @dp.table(
+    # Fully-qualified table name: catalog.schema.table
     name="marathos_catalog.bronze.raw_country_codes",
     comment="Raw Marathos country code mapping ingested into the Bronze layer.",
     table_properties={
+        # Column mapping allows safe column renames without breaking downstream queries
         "delta.columnMapping.mode": "name",
         "delta.minReaderVersion": "2",
         "delta.minWriterVersion": "5",
     },
 )
 def raw_country_codes():
+    """
+    Ingest country code mappings from CSV files using streaming read.
+    
+    This function defines a streaming table that automatically processes new files
+    as they arrive in the source directory.
+    
+    Returns:
+        Streaming DataFrame containing country code reference data from all
+        CSV files in the country codes directory.
+    """
     return (
-        spark.readStream.format("csv")
+        spark.readStream.format("csv")  # Streaming read for incremental processing
         .options(header="true", inferSchema="true")
-        .schema(country_codes_schema)
-        .load(COUNTRY_CODES_PATH)
+        .schema(country_codes_schema)  # Use predefined schema for streaming
+        .load(COUNTRY_CODES_PATH)  # Read all CSV files from directory
     )
