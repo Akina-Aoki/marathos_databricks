@@ -1,0 +1,53 @@
+Table fact_results {
+  result_id string [primary key]
+
+  event_id string [ref: > dim_event.event_id]
+  athlete_id integer [ref: > dim_athlete.athlete_id]
+  country_code_iso3 string [ref: > dim_country.country_code_iso3]
+  date_id integer [ref: > dim_date.date_id]
+
+  event_number_of_finishers integer
+  athlete_performance string
+  athlete_performance_type string
+  athlete_performance_seconds integer
+  athlete_performance_distance double
+  athlete_performance_unit string
+  athlete_average_speed string
+  athlete_average_speed_kmh double
+  athlete_age_at_event integer
+}
+
+
+Table dim_event {
+  event_id string [primary key]
+  event_name string
+  event_distance_length string
+  event_distance_type string
+  event_distance_value double
+  event_distance_unit string
+}
+
+
+Table dim_athlete {
+  athlete_id integer [primary key]
+  athlete_gender string
+  athlete_year_of_birth integer
+  athlete_age_category string
+  athlete_club string
+}
+
+
+Table dim_country {
+  country_code_iso3 string [primary key]
+  athlete_country string
+  country_name string
+}
+
+
+Table dim_date {
+  date_id integer [primary key]
+  event_start_date date
+  year integer
+  month integer
+  month_name string
+}
