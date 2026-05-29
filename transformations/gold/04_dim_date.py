@@ -17,6 +17,7 @@ from pyspark.sql.functions import (
     col,
     year,
     month,
+    dayofmonth,
     date_format,
 )
 
@@ -59,6 +60,7 @@ def dim_date():
             - year: Calendar year (e.g., 2023)
             - month: Month number 1-12
             - month_name: Full month name (e.g., "January", "February")
+            - day: Day of month, 1-31
     """
     # Read all data from the Silver layer One Big Table (OBT)
     # This table contains denormalized marathon results data
@@ -85,7 +87,8 @@ def dim_date():
             # Extract calendar components for time-based filtering and grouping
             year(col("event_start_date")).alias("year"),          # Extract year (2023)
             month(col("event_start_date")).alias("month"),        # Extract month number (1-12)
-            date_format(col("event_start_date"), "MMMM").alias("month_name")  # Get month name ("March")
+            date_format(col("event_start_date"), "MMMM").alias("month_name"),  # Get month name ("March")
+            dayofmonth(col("event_start_date")).alias("day")              # Day of month, 1-31
         )
         # Deduplicate on date_id to ensure each date appears only once
         # Multiple races can happen on the same date, but we want one date record

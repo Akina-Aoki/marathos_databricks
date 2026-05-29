@@ -50,4 +50,5 @@ Table dim_date {
   year integer
   month integer
   month_name string
+  day integer 
 }
