@@ -19,6 +19,14 @@ as they arrive in the Bronze layer.
 
 from pyspark import pipelines as dp
 
+from utils.column_helpers import rename_columns_to_snake_case
+from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.table_names import (
+    MARATHON_RESULTS_OBT,
+    RAW_COUNTRY_CODES,
+    RAW_MARATHON_RESULTS,
+)
+
 from pyspark.sql.functions import (
     col,
     when,
@@ -37,55 +45,6 @@ from pyspark.sql.functions import (
     round,
 )
 
-import re
-
-
-# ------------------------------------------------------------
-# Helper function: convert raw column names to snake_case
-# ------------------------------------------------------------
-
-def to_snake_case(column_name):
-    """
-    Convert a column name to snake_case format.
-    
-    This function handles inconsistent column naming from the raw data source
-    by converting all names to a standardized format. For example:
-    - "Athlete Name" → "athlete_name"
-    - "Year Of Event" → "year_of_event"
-    - "Performance (sec)" → "performance_sec"
-    
-    Args:
-        column_name (str): The original column name from the raw data
-        
-    Returns:
-        str: Column name in snake_case format (lowercase with underscores)
-        
-    Example:
-        >>> to_snake_case("Athlete Year of Birth")
-        'athlete_year_of_birth'
-    """
-    clean_name = column_name.strip().lower()
-    # Replace any sequence of non-alphanumeric characters with a single underscore
-    clean_name = re.sub(r"[^a-z0-9]+", "_", clean_name)
-    # Remove leading/trailing underscores
-    return clean_name.strip("_")
-
-
-def rename_columns_to_snake_case(df):
-    """
-    Apply snake_case naming to all columns in a DataFrame.
-    
-    This ensures consistent column naming across the pipeline, making it easier
-    to write queries and join tables without worrying about casing or special characters.
-    
-    Args:
-        df (DataFrame): Spark DataFrame with original column names
-        
-    Returns:
-        DataFrame: Same data with all column names converted to snake_case
-    """
-    new_columns = [to_snake_case(column) for column in df.columns]
-    return df.toDF(*new_columns)
 
 
 # ------------------------------------------------------------
@@ -93,13 +52,9 @@ def rename_columns_to_snake_case(df):
 # ------------------------------------------------------------
 
 @dp.table(
-    name="marathos_catalog.silver.marathon_results_obt",
+    name=MARATHON_RESULTS_OBT,
     comment="Cleaned and enriched marathon results OBT for the Silver layer.",
-    table_properties={
-        "delta.columnMapping.mode": "name",
-        "delta.minReaderVersion": "2",
-        "delta.minWriterVersion": "5",
-    },
+    table_properties=DELTA_TABLE_PROPERTIES
 )
 def marathon_results_obt():
     """
@@ -146,9 +101,9 @@ def marathon_results_obt():
     # Using STREAM keyword to read from the Bronze streaming table incrementally.
     # This means only new/changed records are processed, not the entire history.
 
-    marathon_df = spark.sql("""
+    marathon_df = spark.sql(f"""
         SELECT *
-        FROM STREAM marathos_catalog.bronze.raw_marathon_results
+        FROM STREAM {RAW_MARATHON_RESULTS}
     """)
 
     # Standardize all column names to snake_case for consistency
@@ -699,9 +654,9 @@ def marathon_results_obt():
     # Join with the country codes lookup table to enrich athlete records
     # with full country names and ISO3 codes for better reporting
 
-    country_df = spark.sql("""
+    country_df = spark.sql(f"""
         SELECT *
-        FROM marathos_catalog.bronze.raw_country_codes
+        FROM {RAW_COUNTRY_CODES}
     """)
 
     # Clean the country lookup table

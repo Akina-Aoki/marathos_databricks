@@ -11,20 +11,16 @@ each row represents one athlete's performance in one race.
 
 from pyspark import pipelines as dp
 
+from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.table_names import MARATHON_RESULTS_OBT, FACT_RESULTS
+
 from pyspark.sql.functions import col, date_format
 
 
 @dp.table(
-    name="marathos_catalog.gold.fact_results",
+    name=FACT_RESULTS,
     comment="Fact table for marathon athlete results created from the Silver marathon OBT.",
-    table_properties={
-        # Enable column mapping to support column name changes
-        "delta.columnMapping.mode": "name",
-        # Set minimum Delta reader version
-        "delta.minReaderVersion": "2",
-        # Set minimum Delta writer version
-        "delta.minWriterVersion": "5",
-    },
+    table_properties=DELTA_TABLE_PROPERTIES
 )
 def fact_results():
     """
@@ -32,7 +28,7 @@ def fact_results():
     
     This function extracts race result metrics and foreign keys from the Silver layer
     marathon_results_obt table to create a fact table in a star schema.
-    
+
     A fact table contains:
     - Foreign keys to dimension tables (event_id, athlete_id, country_code, date_id)
     - Measures/metrics that can be aggregated (performance times, speeds, ages)
@@ -61,9 +57,9 @@ def fact_results():
     """
     # Read all data from the Silver layer One Big Table (OBT)
     # This denormalized table contains all the data we need
-    silver_df = spark.sql("""
+    silver_df = spark.sql(f"""
         SELECT *
-        FROM marathos_catalog.silver.marathon_results_obt
+        FROM {MARATHON_RESULTS_OBT}
     """)
 
     # Transform into a fact table:

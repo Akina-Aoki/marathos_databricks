@@ -7,12 +7,18 @@ Bronze tables contain unprocessed data as-is from the source.
 
 from pyspark import pipelines as dp
 
+from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.table_names import (
+    RAW_COUNTRY_CODES,
+    RAW_MARATHON_RESULTS,
+    RAW_VOLUME_BASE_DIR,
+)
 
 # ------------------------------------------------------------
 # Base paths in Unity Catalog raw volume
 # ------------------------------------------------------------
 
-BASE_DIR = "/Volumes/marathos_catalog/default/raw"
+BASE_DIR = RAW_VOLUME_BASE_DIR
 
 MARATHON_DATA_PATH = f"{BASE_DIR}/data"
 MARATHON_SAMPLE_FILE = f"{MARATHON_DATA_PATH}/TWO_CENTURIES_OF_UM_RACES.csv"
@@ -51,7 +57,7 @@ country_codes_schema = (
 
 @dp.table(
     # Fully-qualified table name: catalog.schema.table
-    name="marathos_catalog.bronze.raw_marathon_results",
+    name=RAW_MARATHON_RESULTS,
     comment="Raw ultra-marathon race results ingested into the Bronze layer.",
     table_properties={
         # Column mapping allows safe column renames without breaking downstream queries
@@ -59,6 +65,7 @@ country_codes_schema = (
         "delta.minReaderVersion": "2",
         "delta.minWriterVersion": "5",
     },
+    table_properties=DELTA_TABLE_PROPERTIES,
 )
 def raw_marathon_results():
     """
@@ -85,7 +92,7 @@ def raw_marathon_results():
 
 @dp.table(
     # Fully-qualified table name: catalog.schema.table
-    name="marathos_catalog.bronze.raw_country_codes",
+    name= RAW_COUNTRY_CODES,
     comment="Raw Marathos country code mapping ingested into the Bronze layer.",
     table_properties={
         # Column mapping allows safe column renames without breaking downstream queries
@@ -93,6 +100,7 @@ def raw_marathon_results():
         "delta.minReaderVersion": "2",
         "delta.minWriterVersion": "5",
     },
+    table_properties=DELTA_TABLE_PROPERTIES,
 )
 def raw_country_codes():
     """

@@ -13,13 +13,27 @@ The marathon result types are:
 
 from pyspark import pipelines as dp
 
+from utils.table_names import (
+    DIM_ATHLETE,
+    DIM_COUNTRY,
+    DIM_DATE,
+    DIM_EVENT,
+    FACT_RESULTS,
+    VW_COUNTRY_SEASONAL_TRENDS,
+    VW_DISTANCE_KM_RESULTS,
+    VW_DISTANCE_MI_RESULTS,
+    VW_GLOBAL_LEADERBOARD,
+    VW_RUNNER_DEMOGRAPHICS,
+    VW_SEASONAL_RACE_TRENDS,
+    VW_TIME_HOUR_RESULTS,
+)
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_distance_km_results",
+    name=VW_DISTANCE_KM_RESULTS,
     comment="Analytical view for kilometer-based marathon and ultramarathon results.",
 )
 def vw_distance_km_results():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             f.result_id,
             d.event_start_date,
@@ -42,25 +56,25 @@ def vw_distance_km_results():
             f.athlete_performance_seconds,
             f.athlete_average_speed_kmh,
             f.athlete_age_at_event
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_event e
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_EVENT} e
             ON f.event_id = e.event_id
-        INNER JOIN marathos_catalog.gold.dim_athlete a
+        INNER JOIN {DIM_ATHLETE} a
             ON f.athlete_id = a.athlete_id
-        INNER JOIN marathos_catalog.gold.dim_country c
+        INNER JOIN {DIM_COUNTRY} c
             ON f.country_code_iso3 = c.country_code_iso3
-        INNER JOIN marathos_catalog.gold.dim_date d
+        INNER JOIN {DIM_DATE} d
             ON f.date_id = d.date_id
         WHERE e.event_distance_type = 'distance_km'
     """)
 
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_distance_mi_results",
+    name=VW_DISTANCE_MI_RESULTS,
     comment="Analytical view for mile-based marathon and ultramarathon results.",
 )
 def vw_distance_mi_results():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             f.result_id,
             d.event_start_date,
@@ -83,25 +97,25 @@ def vw_distance_mi_results():
             f.athlete_performance_seconds,
             f.athlete_average_speed_kmh,
             f.athlete_age_at_event
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_event e
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_EVENT} e
             ON f.event_id = e.event_id
-        INNER JOIN marathos_catalog.gold.dim_athlete a
+        INNER JOIN {DIM_ATHLETE} a
             ON f.athlete_id = a.athlete_id
-        INNER JOIN marathos_catalog.gold.dim_country c
+        INNER JOIN {DIM_COUNTRY} c
             ON f.country_code_iso3 = c.country_code_iso3
-        INNER JOIN marathos_catalog.gold.dim_date d
+        INNER JOIN {DIM_DATE} d
             ON f.date_id = d.date_id
         WHERE e.event_distance_type = 'distance_mi'
     """)
 
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_time_hour_results",
+    name=VW_TIME_HOUR_RESULTS,
     comment="Analytical view for fixed-hour marathon and ultramarathon results.",
 )
 def vw_time_hour_results():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             f.result_id,
             d.event_start_date,
@@ -124,14 +138,14 @@ def vw_time_hour_results():
             f.athlete_performance_distance,
             f.athlete_average_speed_kmh,
             f.athlete_age_at_event
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_event e
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_EVENT} e
             ON f.event_id = e.event_id
-        INNER JOIN marathos_catalog.gold.dim_athlete a
+        INNER JOIN {DIM_ATHLETE} a
             ON f.athlete_id = a.athlete_id
-        INNER JOIN marathos_catalog.gold.dim_country c
+        INNER JOIN {DIM_COUNTRY} c
             ON f.country_code_iso3 = c.country_code_iso3
-        INNER JOIN marathos_catalog.gold.dim_date d
+        INNER JOIN {DIM_DATE} d
             ON f.date_id = d.date_id
         WHERE e.event_distance_type = 'time_hours'
     """)
@@ -142,11 +156,11 @@ def vw_time_hour_results():
 # ------------------------------------------------------------
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_global_leaderboard",
+    name=VW_GLOBAL_LEADERBOARD,
     comment="Country-level participation and performance leaderboard."
 )
 def vw_global_leaderboard():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             c.country_name,
             c.country_code_iso3 AS country_code,
@@ -158,8 +172,8 @@ def vw_global_leaderboard():
             ROUND(AVG(f.athlete_average_speed_kmh), 3) AS average_speed_kmh,
             ROUND(AVG(f.athlete_age_at_event), 1) AS average_athlete_age
 
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_country c
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_COUNTRY} c
             ON f.country_code_iso3 = c.country_code_iso3
 
         GROUP BY
@@ -172,11 +186,11 @@ def vw_global_leaderboard():
 # ------------------------------------------------------------
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_seasonal_race_trends",
+    name=VW_SEASONAL_RACE_TRENDS,
     comment="Monthly marathon and ultramarathon activity trends."
 )
 def vw_seasonal_race_trends():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             d.year AS race_year,
             d.month_name AS race_month,
@@ -188,8 +202,8 @@ def vw_seasonal_race_trends():
             ROUND(AVG(f.athlete_average_speed_kmh), 3) AS average_speed_kmh,
             ROUND(AVG(f.athlete_age_at_event), 1) AS average_athlete_age
 
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_date d
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_DATE} d
             ON f.date_id = d.date_id
 
         GROUP BY
@@ -203,11 +217,11 @@ def vw_seasonal_race_trends():
 # ------------------------------------------------------------
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_runner_demographics",
+    name=VW_RUNNER_DEMOGRAPHICS,
     comment="Runner participation and performance by gender and age group."
 )
 def vw_runner_demographics():
-    return spark.sql("""
+    return spark.sql(f"""
         WITH demographic_base AS (
             SELECT
                 CASE
@@ -234,8 +248,8 @@ def vw_runner_demographics():
                 f.athlete_average_speed_kmh,
                 f.athlete_age_at_event
 
-            FROM marathos_catalog.gold.fact_results f
-            INNER JOIN marathos_catalog.gold.dim_athlete a
+            FROM {FACT_RESULTS} f
+            INNER JOIN {DIM_ATHLETE} a
                 ON f.athlete_id = a.athlete_id
 
             WHERE a.athlete_age_category IS NOT NULL
@@ -275,11 +289,11 @@ def vw_runner_demographics():
 # ------------------------------------------------------------
 
 @dp.materialized_view(
-    name="marathos_catalog.gold.vw_country_seasonal_trends",
+    name=VW_COUNTRY_SEASONAL_TRENDS,
     comment="Monthly race activity trends by athlete country."
 )
 def vw_country_seasonal_trends():
-    return spark.sql("""
+    return spark.sql(f"""
         SELECT
             d.year AS race_year,
             d.month_name AS race_month,
@@ -292,10 +306,10 @@ def vw_country_seasonal_trends():
             ROUND(AVG(f.athlete_average_speed_kmh), 3) AS average_speed_kmh,
             ROUND(AVG(f.athlete_age_at_event), 1) AS average_athlete_age
 
-        FROM marathos_catalog.gold.fact_results f
-        INNER JOIN marathos_catalog.gold.dim_date d
+        FROM {FACT_RESULTS} f
+        INNER JOIN {DIM_DATE} d
             ON f.date_id = d.date_id
-        INNER JOIN marathos_catalog.gold.dim_country c
+        INNER JOIN {DIM_COUNTRY} c
             ON f.country_code_iso3 = c.country_code_iso3
             
 
