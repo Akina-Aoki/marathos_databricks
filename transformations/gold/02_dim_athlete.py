@@ -8,20 +8,16 @@ to create a dimensional model for analyzing athlete demographics and characteris
 
 from pyspark import pipelines as dp
 
+from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.table_names import DIM_ATHLETE, MARATHON_RESULTS_OBT
+
 from pyspark.sql.functions import col
 
 
 @dp.table(
-    name="marathos_catalog.gold.dim_athlete",
+    name=DIM_ATHLETE,
     comment="Athlete dimension table created from the Silver marathon OBT.",
-    table_properties={
-        # Enable column mapping to support column name changes
-        "delta.columnMapping.mode": "name",
-        # Set minimum Delta reader version
-        "delta.minReaderVersion": "2",
-        # Set minimum Delta writer version
-        "delta.minWriterVersion": "5",
-    },
+    table_properties=DELTA_TABLE_PROPERTIES,
 )
 def dim_athlete():
     """
@@ -41,9 +37,9 @@ def dim_athlete():
     """
     # Read all data from the Silver layer One Big Table (OBT)
     # This table contains denormalized marathon results data
-    silver_df = spark.sql("""
+    silver_df = spark.sql(f"""
         SELECT *
-        FROM marathos_catalog.silver.marathon_results_obt
+        FROM {MARATHON_RESULTS_OBT}
     """)
 
     # Transform the data into an athlete dimension:

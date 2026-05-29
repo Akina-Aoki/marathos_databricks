@@ -59,12 +59,6 @@ country_codes_schema = (
     # Fully-qualified table name: catalog.schema.table
     name=RAW_MARATHON_RESULTS,
     comment="Raw ultra-marathon race results ingested into the Bronze layer.",
-    table_properties={
-        # Column mapping allows safe column renames without breaking downstream queries
-        "delta.columnMapping.mode": "name",
-        "delta.minReaderVersion": "2",
-        "delta.minWriterVersion": "5",
-    },
     table_properties=DELTA_TABLE_PROPERTIES,
 )
 def raw_marathon_results():
@@ -92,14 +86,8 @@ def raw_marathon_results():
 
 @dp.table(
     # Fully-qualified table name: catalog.schema.table
-    name= RAW_COUNTRY_CODES,
+    name=RAW_COUNTRY_CODES,
     comment="Raw Marathos country code mapping ingested into the Bronze layer.",
-    table_properties={
-        # Column mapping allows safe column renames without breaking downstream queries
-        "delta.columnMapping.mode": "name",
-        "delta.minReaderVersion": "2",
-        "delta.minWriterVersion": "5",
-    },
     table_properties=DELTA_TABLE_PROPERTIES,
 )
 def raw_country_codes():

@@ -13,6 +13,9 @@ A date dimension is a standard component in data warehouses that enables:
 
 from pyspark import pipelines as dp
 
+from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.table_names import DIM_DATE, MARATHON_RESULTS_OBT
+
 from pyspark.sql.functions import (
     col,
     year,
@@ -23,16 +26,9 @@ from pyspark.sql.functions import (
 
 
 @dp.table(
-    name="marathos_catalog.gold.dim_date",
+    name=DIM_DATE,
     comment="Date dimension table created from event_start_date in the Silver marathon OBT.",
-    table_properties={
-        # Enable column mapping to support column name changes
-        "delta.columnMapping.mode": "name",
-        # Set minimum Delta reader version
-        "delta.minReaderVersion": "2",
-        # Set minimum Delta writer version
-        "delta.minWriterVersion": "5",
-    },
+    table_properties=DELTA_TABLE_PROPERTIES,
 )
 def dim_date():
     """
@@ -64,9 +60,9 @@ def dim_date():
     """
     # Read all data from the Silver layer One Big Table (OBT)
     # This table contains denormalized marathon results data
-    silver_df = spark.sql("""
+    silver_df = spark.sql(f"""
         SELECT *
-        FROM marathos_catalog.silver.marathon_results_obt
+        FROM {MARATHON_RESULTS_OBT}
     """)
 
     # Transform the data into a date dimension:
