@@ -57,10 +57,7 @@ def fact_results():
     """
     # Read all data from the Silver layer One Big Table (OBT)
     # This denormalized table contains all the data we need
-    silver_df = spark.sql(f"""
-        SELECT *
-        FROM {MARATHON_RESULTS_OBT}
-    """)
+    silver_df = spark.read.table(MARATHON_RESULTS_OBT)
 
     # Transform into a fact table:
     # - Keep foreign keys that link to dimension tables
