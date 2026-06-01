@@ -21,6 +21,23 @@ from pyspark import pipelines as dp
 
 from utils.column_helpers import rename_columns_to_snake_case
 from utils.pipeline_config import DELTA_TABLE_PROPERTIES
+from utils.silver_constants import (
+    DATE_FORMAT,
+    HASH_BITS,
+    HASH_DELIMITER,
+    INVALID_BIRTH_YEAR,
+    KM_PER_MILE,
+    MAX_ATHLETE_AGE,
+    MAX_VALID_SPEED_KMH,
+    MIN_ATHLETE_AGE,
+    MIN_VALID_SPEED_KMH,
+    SECONDS_PER_DAY,
+    SECONDS_PER_HOUR,
+    SECONDS_PER_MINUTE,
+    SPEED_ROUND_SCALE,
+    UNKNOWN_VALUE,
+)
+
 from utils.table_names import (
     MARATHON_RESULTS_OBT,
     RAW_COUNTRY_CODES,
@@ -154,7 +171,7 @@ def marathon_results_obt():
         "event_start_date",
         when(
             col("event_date_format_type") == "single_date",
-            expr("try_to_date(event_dates, 'dd.MM.yyyy')")  # Parse as DD.MM.YYYY
+            expr(f"try_to_date(event_dates, '{DATE_FORMAT}')")  # Parse as DD.MM.YYYY
         )
     )
 
@@ -189,7 +206,7 @@ def marathon_results_obt():
             "event_start_date",
             when(
                 col("event_date_format_type") == "date_range_same_month",
-                expr("try_to_date(same_month_start_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(same_month_start_raw, '{DATE_FORMAT}')")
             ).otherwise(col("event_start_date"))  # Keep previous value if not this format
         )
         .withColumn(
@@ -197,7 +214,7 @@ def marathon_results_obt():
             when(col("event_date_format_type") == "single_date", col("event_start_date"))  # Single day events
             .when(
                 col("event_date_format_type") == "date_range_same_month",
-                expr("try_to_date(same_month_end_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(same_month_end_raw, '{DATE_FORMAT}')")
             )
         )
     )
@@ -244,14 +261,14 @@ def marathon_results_obt():
             "event_start_date",
             when(
                 col("event_date_format_type") == "date_range_different_month",
-                expr("try_to_date(diff_month_start_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(diff_month_start_raw, '{DATE_FORMAT}')")
             ).otherwise(col("event_start_date"))
         )
         .withColumn(
             "event_end_date",
             when(
                 col("event_date_format_type") == "date_range_different_month",
-                expr("try_to_date(diff_month_end_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(diff_month_end_raw, '{DATE_FORMAT}')")
             ).otherwise(col("event_end_date"))
         )
     )
@@ -288,14 +305,14 @@ def marathon_results_obt():
             "event_start_date",
             when(
                 col("event_date_format_type") == "date_range_different_year",
-                expr("try_to_date(diff_year_start_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(diff_year_start_raw, '{DATE_FORMAT}')")
             ).otherwise(col("event_start_date"))
         )
         .withColumn(
             "event_end_date",
             when(
                 col("event_date_format_type") == "date_range_different_year",
-                expr("try_to_date(diff_year_end_raw, 'dd.MM.yyyy')")
+                expr(f"try_to_date(diff_year_end_raw, '{DATE_FORMAT}')")
             ).otherwise(col("event_end_date"))
         )
     )
@@ -404,12 +421,12 @@ def marathon_results_obt():
         .when(trim(col("athlete_performance")).rlike(r"^[0-9]+d [0-9]{2}:[0-9]{2}:[0-9]{2} h$"), "time_days_hours")
         .when(trim(col("athlete_performance")).rlike(r"^[0-9]+(\.[0-9]+)? km$"), "distance_km")
         .when(trim(col("athlete_performance")).rlike(r"^[0-9]+(\.[0-9]+)? mi$"), "distance_mi")
-        .otherwise("unknown")
+        .otherwise(UNKNOWN_VALUE)
     )
 
     # Remove records with null or unknown performance formats
     marathon_df = marathon_df.filter(
-        ~col("athlete_performance_type").isin("null", "unknown")
+        ~col("athlete_performance_type").isin("null", UNKNOWN_VALUE)
     )
 
     # --------------------------------------------------------
@@ -451,14 +468,14 @@ def marathon_results_obt():
         "athlete_performance_seconds",
         when(
             col("athlete_performance_type") == "time_hours",
-            performance_hours.cast("int") * 3600
-            + performance_minutes.cast("int") * 60
+            performance_hours.cast("int") * SECONDS_PER_HOUR
+            + performance_minutes.cast("int") * SECONDS_PER_MINUTE
             + performance_seconds.cast("int")
         ).when(
             col("athlete_performance_type") == "time_days_hours",
-            performance_days.cast("int") * 86400
-            + performance_day_hours.cast("int") * 3600
-            + performance_day_minutes.cast("int") * 60
+            performance_days.cast("int") * SECONDS_PER_DAY
+            + performance_day_hours.cast("int") * SECONDS_PER_HOUR
+            + performance_day_minutes.cast("int") * SECONDS_PER_MINUTE
             + performance_day_seconds.cast("int")
         )
     )
@@ -498,7 +515,7 @@ def marathon_results_obt():
         "athlete_club",
         trim(
             regexp_replace(
-                trim(coalesce(col("athlete_club"), lit("unknown"))),
+                trim(coalesce(col("athlete_club"), lit(UNKNOWN_VALUE))),
                 r"^\*+\s*",  # Remove leading asterisks and spaces
                 ""
             )
@@ -507,7 +524,7 @@ def marathon_results_obt():
 
     marathon_df = marathon_df.withColumn(
         "athlete_club",
-        when(length(trim(col("athlete_club"))) == 0, lit("unknown"))
+        when(length(trim(col("athlete_club"))) == 0, lit(UNKNOWN_VALUE))
         .otherwise(col("athlete_club"))
     )
 
@@ -526,7 +543,7 @@ def marathon_results_obt():
     
     marathon_df = marathon_df.withColumn(
         "athlete_year_of_birth",
-        when(col("athlete_year_of_birth") == 1193, None)  # Treat as invalid
+        when(col("athlete_year_of_birth") == INVALID_BIRTH_YEAR, None)  # Treat as invalid
         .otherwise(col("athlete_year_of_birth").cast("int"))
     )
 
@@ -545,8 +562,8 @@ def marathon_results_obt():
     marathon_df = marathon_df.withColumn(
         "athlete_age_at_event",
         when(
-            (col("athlete_age_at_event") < 5)
-            | (col("athlete_age_at_event") > 100),
+            (col("athlete_age_at_event") < MIN_ATHLETE_AGE)
+            | (col("athlete_age_at_event") > MAX_ATHLETE_AGE),
             None
         ).otherwise(col("athlete_age_at_event"))
     )
@@ -565,7 +582,7 @@ def marathon_results_obt():
         when(
             col("athlete_age_category").isNull()
             | (length(trim(col("athlete_age_category"))) == 0),
-            lit("unknown")
+            lit(UNKNOWN_VALUE)
         ).otherwise(upper(trim(col("athlete_age_category"))))
     )
 
@@ -604,13 +621,13 @@ def marathon_results_obt():
             # speed = distance in km / performance hours
             (col("event_distance_unit") == "km")
             & col("athlete_performance_seconds").isNotNull(),
-            col("event_distance_value") / (col("athlete_performance_seconds") / 3600)
+            col("event_distance_value") / (col("athlete_performance_seconds") / SECONDS_PER_HOUR)
         ).when(
             # Distance events in miles:
             # convert miles to km (1 mi = 1.60934 km), then divide by performance hours
             (col("event_distance_unit") == "mi")
             & col("athlete_performance_seconds").isNotNull(),
-            (col("event_distance_value") * 1.60934) / (col("athlete_performance_seconds") / 3600)
+            (col("event_distance_value") * KM_PER_MILE) / (col("athlete_performance_seconds") / SECONDS_PER_HOUR)
         ).when(
             # Fixed-time events in hours where performance is in km:
             # speed = completed distance in km / event hours
@@ -624,14 +641,14 @@ def marathon_results_obt():
             (col("event_distance_unit") == "h")
             & (col("athlete_performance_unit") == "mi")
             & col("athlete_performance_distance").isNotNull(),
-            (col("athlete_performance_distance") * 1.60934) / col("event_distance_value")
+            (col("athlete_performance_distance") * KM_PER_MILE) / col("event_distance_value")
         )
     )
 
     # Round speed to 3 decimal places for cleaner analysis and dashboarding
     marathon_df = marathon_df.withColumn(
     "athlete_average_speed_kmh",
-        round(col("athlete_average_speed_kmh"), 3)
+        round(col("athlete_average_speed_kmh"), SPEED_ROUND_SCALE)
     )
 
     # --------------------------------------------------------
@@ -644,8 +661,8 @@ def marathon_results_obt():
     
     marathon_df = marathon_df.filter(
         col("athlete_average_speed_kmh").isNotNull()
-        & (col("athlete_average_speed_kmh") > 0)
-        & (col("athlete_average_speed_kmh") <= 50)
+        & (col("athlete_average_speed_kmh") > MIN_VALID_SPEED_KMH)
+        & (col("athlete_average_speed_kmh") <= MAX_VALID_SPEED_KMH)
     )
 
     # --------------------------------------------------------
@@ -727,18 +744,18 @@ def marathon_results_obt():
             "event_id",
             sha2(
                 concat_ws(
-                    "||",  # Delimiter to prevent hash collisions
+                    HASH_DELIMITER,  # Delimiter to prevent hash collisions
                     col("event_name"),
                     col("event_distance_length")
                 ),
-                256  # SHA-256 produces a 64-character hex string
+                HASH_BITS  # SHA-256 produces a 64-character hex string
             )
         )
         .withColumn(
             "result_id",
             sha2(
                 concat_ws(
-                    "||",
+                    HASH_DELIMITER,
                     col("event_name"),
                     col("event_date_raw"),
                     col("event_distance_length"),
@@ -754,7 +771,7 @@ def marathon_results_obt():
                     col("athlete_performance"),
                     col("athlete_average_speed")
                 ),
-                256
+                HASH_BITS
             )
         )
     )
