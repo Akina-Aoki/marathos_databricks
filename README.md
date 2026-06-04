@@ -15,7 +15,7 @@ Explore the interactive Databricks dashboard for marathon trends, country partic
 - How has race participation changed over time?
 - How do athlete demographics differ by gender and age group?
 - How do kilometer, mile, and fixed-time race categories compare?
-- How can stakeholders ask ad hoc questions through Genie?
+- Ask ad hoc questions through Genie.
 
 ## Teck Stack
 
