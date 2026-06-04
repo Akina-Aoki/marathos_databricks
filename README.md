@@ -17,7 +17,7 @@ Explore the interactive Databricks dashboard for marathon trends, country partic
 - How do kilometer, mile, and fixed-time race categories compare?
 - Ask ad hoc questions through Genie.
 
-## Teck Stack
+## Tech Stack
 
 <img width="324" height="225" alt="ts2" src="https://github.com/user-attachments/assets/db76a398-f90a-4403-ad96-42d97d4c75ab" />
 
@@ -86,7 +86,49 @@ The main source is a marathon and ultramarathon race result dataset where each r
 
 
 
+## DRY Principles (utils)
+| Utility               | Purpose                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `table_names.py`      | Centralizes catalog, schema, table, view, and volume paths.                           |
+| `pipeline_config.py`  | Stores reusable Delta table properties.                                               |
+| `column_helpers.py`   | Provides reusable column transformation helpers.                                      |
+| `silver_constants.py` | Stores standard values, mappings, and reference constants for Silver transformations. |
+
+
 ## Validation
 
 <img width="1448" height="1086" alt="quality2" src="https://github.com/user-attachments/assets/9f4f3610-b145-4c59-b759-179c10d2738c" />
+
+
+## Gold Layer Analytical Views
+
+| View                         | Purpose                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `vw_global_leaderboard`      | Country-level leaderboard for race records, unique athletes, events, speed, and age. |
+| `vw_seasonal_race_trends`    | Monthly race activity, participation, event volume, and performance trends.          |
+| `vw_country_seasonal_trends` | Country-level seasonal trends for dashboard filtering and comparison.                |
+| `vw_runner_demographics`     | Runner participation and performance by gender and age group.                        |
+| `vw_distance_km_results`     | Analytical view for kilometer-based race results.                                    |
+| `vw_distance_mi_results`     | Analytical view for mile-based race results.                                         |
+| `vw_time_hour_results`       | Analytical view for fixed-time race results.                                         |
+
+
+## AI Use Disclaimer
+## AI Assistance Disclaimer
+
+This project was created by me as part of my data engineering coursework. I used an AI language model as a support tool while working on the project.
+
+AI was used to help with:
+
+* explaining data engineering concepts
+* debugging errors
+* improving documentation and naming
+* generating longer SQL code for notebooks
+* supporting scripts for the layers
+* suggesting improvements for the Bronze, Silver, and Gold layers
+* Creating the SQL Datasets in Databricks
+
+All code, data cleaning, modelling decisions, validation checks, and final project choices were reviewed, tested, and adapted by me. I am responsible for the final solution.
+
+AI was used as a learning and development support tool, not as a replacement for my own work or understanding.
 
