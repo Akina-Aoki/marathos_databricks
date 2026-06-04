@@ -113,7 +113,7 @@ The main source is a marathon and ultramarathon race result dataset where each r
 | `vw_time_hour_results`       | Analytical view for fixed-time race results.                                         |
 
 
-## AI Use Disclaimer
+
 ## AI Assistance Disclaimer
 
 This project was created by me as part of my data engineering coursework. I used an AI language model as a support tool while working on the project.
